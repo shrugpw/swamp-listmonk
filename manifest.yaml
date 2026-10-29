@@ -1,0 +1,63 @@
+manifestVersion: 1
+name: "@shrug/listmonk"
+version: "2026.10.28.1"
+description: |
+  listmonk (v6.2.0) REST API behavior — a typed swamp primitive for driving a
+  listmonk deployment, not exec/curl wrappers.
+
+  **Status: in development.**
+
+  One behavior type (`@shrug/listmonk`), one deployment per instance.
+  Routine methods authenticate as a SCOPED operational api user
+  (`apiUser`/`apiToken`, vaulted); the Super Admin credential is only supplied
+  at provision time as method arguments. Every write is gated behind `dryRun`
+  (default true); campaign sends carry an additional per-call gate.
+
+  ## Methods (by phase)
+
+  - **Phase 0 (read)** — `health` (GET /api/profile token probe), `sync`
+    (secret-free snapshot: profile, lists, masked settings, subscriber/campaign
+    counts; each section fault-tolerant).
+  - **Phase 0.5 (auth bootstrap)** — `provisionApiUser` (mint a least-privilege
+    api user + token, writing the token to the sensitive `apiCredential`
+    resource so swamp vaults it), `rotateApiToken` (destructive delete+recreate).
+  - **Phase 1 (settings)** — `applySettings` (GET-merge-PUT, SMTP password
+    preservation), `reconcileSettings` (declarative per-key drift of the
+    DECLARED desired settings, convergent-on-declared, secrets redacted),
+    `getSettings`, `setSmtpServers`, `testSmtp`, `reloadApp`.
+  - **Phase 2 (lists)** — `upsertList` (find-by-name then POST/partial-PUT,
+    always sends tags), `deleteList`, `listLists`/`findListByName`, `getList`.
+  - **Phase 3 (subscribers)** — `importSubscribers` (async global-singleton:
+    reset, multipart upload, poll, scan logs), `upsertSubscriber`,
+    `manageSubscriberLists`, `querySubscribers`, `deleteSubscriber`.
+  - **Phase 4 (campaigns, sends hard-gated)** — `createCampaign` (always draft),
+    `updateCampaign`, `setCampaignStatus`, `sendCampaign`*, `scheduleCampaign`*,
+    `pauseCampaign`/`cancelCampaign`, `testCampaign`*, template CRUD, previews,
+    stats. (* = hard approval + dryRun default.)
+
+  ## Auth contract
+
+  `Authorization: token <apiUser>:<apiToken>` (literal "token", NOT bearer);
+  never send a Cookie header (it shadows Authorization and 403s). Unauth /
+  insufficient-perm => HTTP 403 (not 401).
+
+repository: https://github.com/shrugpw/swamp-listmonk
+
+license: MIT
+
+additionalFiles:
+  - README.md
+  - LICENSE.txt
+
+models:
+  - listmonk.ts
+
+# Empty platforms == universal. Talks HTTPS to the listmonk REST API via
+# fetch(); no host binaries are shelled out, so it runs anywhere.
+platforms: []
+
+labels:
+  - listmonk
+  - mailing-list
+  - newsletter
+  - email
