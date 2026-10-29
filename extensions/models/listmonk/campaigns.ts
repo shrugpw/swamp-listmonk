@@ -106,7 +106,7 @@ export const CAMPAIGN_STATUS_TRANSITIONS: Record<string, readonly string[]> = {
 const CampaignListRefSchema = z.object({
   id: z.number(),
   name: z.string(),
-}).passthrough();
+});
 
 const CampaignSummarySchema = z.object({
   id: z.number(),
@@ -125,19 +125,19 @@ const CampaignSummarySchema = z.object({
   sent: z.number().nullable(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-}).passthrough();
+});
 
 const CampaignsSchema = z.object({
   retrievedAt: z.string(),
   count: z.number(),
   campaigns: z.array(CampaignSummarySchema),
-}).passthrough();
+});
 
 const CampaignSchema = z.object({
   retrievedAt: z.string(),
   found: z.boolean(),
   campaign: CampaignSummarySchema.nullable(),
-}).passthrough();
+});
 
 const CampaignWriteSchema = z.object({
   retrievedAt: z.string(),
@@ -146,7 +146,7 @@ const CampaignWriteSchema = z.object({
   action: z.string(), // would-create|created|would-update|updated|would-test|tested|blocked-send-gate
   requestBody: z.record(z.string(), z.unknown()),
   campaign: CampaignSummarySchema.nullable().optional(),
-}).passthrough();
+});
 
 const CampaignStatusSchema = z.object({
   retrievedAt: z.string(),
@@ -158,7 +158,7 @@ const CampaignStatusSchema = z.object({
   transmitting: z.boolean(),
   action: z.string(), // would-transition|transitioned|blocked-send-gate
   sendAt: z.string().nullable(),
-}).passthrough();
+});
 
 const CampaignStatRowSchema = z.object({
   id: z.number(),
@@ -167,12 +167,12 @@ const CampaignStatRowSchema = z.object({
   sent: z.number().nullable(),
   startedAt: z.string().nullable(),
   updatedAt: z.string().nullable(),
-}).passthrough();
+});
 
 const CampaignStatsSchema = z.object({
   retrievedAt: z.string(),
   stats: z.array(CampaignStatRowSchema),
-}).passthrough();
+});
 
 const CampaignPreviewSchema = z.object({
   retrievedAt: z.string(),
@@ -180,7 +180,7 @@ const CampaignPreviewSchema = z.object({
   contentLength: z.number(),
   truncated: z.boolean(),
   content: z.string(),
-}).passthrough();
+});
 
 const TemplateSummarySchema = z.object({
   id: z.number(),
@@ -190,20 +190,20 @@ const TemplateSummarySchema = z.object({
   isDefault: z.boolean().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-}).passthrough();
+});
 
 const TemplatesSchema = z.object({
   retrievedAt: z.string(),
   count: z.number(),
   templates: z.array(TemplateSummarySchema),
-}).passthrough();
+});
 
 const TemplateSchema = z.object({
   retrievedAt: z.string(),
   found: z.boolean(),
   template: TemplateSummarySchema.nullable(),
   body: z.string().nullable(),
-}).passthrough();
+});
 
 const TemplateWriteSchema = z.object({
   retrievedAt: z.string(),
@@ -211,7 +211,7 @@ const TemplateWriteSchema = z.object({
   templateId: z.number().nullable(),
   action: z.string(), // would-create|created|would-update|updated|would-delete|deleted|not-found|would-set-default|set-default
   requestBody: z.record(z.string(), z.unknown()),
-}).passthrough();
+});
 
 export const campaignsResources: ResourceMap = {
   campaigns: {
@@ -643,20 +643,15 @@ async function runSetCampaignStatus(
 // Methods
 // ---------------------------------------------------------------------------
 
-const listCampaignsArgs = z.object({
-  _fetch: z.any().optional(),
-});
+const listCampaignsArgs = z.object({});
 
 const getCampaignArgs = z.object({
   campaignId: z.union([z.number(), z.string()]).describe(
     "The campaign id (positive integer).",
   ),
-  _fetch: z.any().optional(),
 });
 
-const getRunningCampaignStatsArgs = z.object({
-  _fetch: z.any().optional(),
-});
+const getRunningCampaignStatsArgs = z.object({});
 
 const createCampaignArgs = z.object({
   name: z.string().min(1),
@@ -683,7 +678,6 @@ const createCampaignArgs = z.object({
   headers: z.array(z.record(z.string(), z.string())).default([]).describe(
     'ARRAY of single-key objects, e.g. [{"X-Custom":"v"}].',
   ),
-  _fetch: z.any().optional(),
 });
 
 const updateCampaignArgs = z.object({
@@ -703,7 +697,6 @@ const updateCampaignArgs = z.object({
   ),
   media: z.array(z.number().int().positive()).optional(),
   headers: z.array(z.record(z.string(), z.string())).optional(),
-  _fetch: z.any().optional(),
 });
 
 const setCampaignStatusArgs = z.object({
@@ -724,7 +717,6 @@ const setCampaignStatusArgs = z.object({
       "'running' or 'scheduled' — those TRANSMIT EMAIL. Ignored for " +
       "non-transmitting targets.",
   ),
-  _fetch: z.any().optional(),
 });
 
 const sendCampaignArgs = z.object({
@@ -733,7 +725,6 @@ const sendCampaignArgs = z.object({
     "TIER-2 HARD GATE: must be true, together with global dryRun=false, " +
       "or NO email is sent.",
   ),
-  _fetch: z.any().optional(),
 });
 
 const scheduleCampaignArgs = z.object({
@@ -745,17 +736,14 @@ const scheduleCampaignArgs = z.object({
     "TIER-2 HARD GATE: must be true, together with global dryRun=false, " +
       "or NO email is sent (and send_at is not even PUT to the campaign).",
   ),
-  _fetch: z.any().optional(),
 });
 
 const pauseCampaignArgs = z.object({
   campaignId: z.union([z.number(), z.string()]),
-  _fetch: z.any().optional(),
 });
 
 const cancelCampaignArgs = z.object({
   campaignId: z.union([z.number(), z.string()]),
-  _fetch: z.any().optional(),
 });
 
 const testCampaignArgs = z.object({
@@ -768,21 +756,16 @@ const testCampaignArgs = z.object({
     "TIER-2 HARD GATE: must be true, together with global dryRun=false, " +
       "or NO test email is sent.",
   ),
-  _fetch: z.any().optional(),
 });
 
 const previewCampaignArgs = z.object({
   campaignId: z.union([z.number(), z.string()]),
-  _fetch: z.any().optional(),
 });
 
-const listTemplatesArgs = z.object({
-  _fetch: z.any().optional(),
-});
+const listTemplatesArgs = z.object({});
 
 const getTemplateArgs = z.object({
   templateId: z.union([z.number(), z.string()]),
-  _fetch: z.any().optional(),
 });
 
 const upsertTemplateArgs = z.object({
@@ -797,17 +780,14 @@ const upsertTemplateArgs = z.object({
   ),
   subject: z.string().optional(),
   body: z.string().min(1),
-  _fetch: z.any().optional(),
 });
 
 const deleteTemplateArgs = z.object({
   templateId: z.union([z.number(), z.string()]),
-  _fetch: z.any().optional(),
 });
 
 const setDefaultTemplateArgs = z.object({
   templateId: z.union([z.number(), z.string()]),
-  _fetch: z.any().optional(),
 });
 
 export const campaignsMethods: MethodMap = {
@@ -817,7 +797,7 @@ export const campaignsMethods: MethodMap = {
       "summary. Writes the `campaigns` resource.",
     arguments: listCampaignsArgs,
     execute: async (
-      args: z.infer<typeof listCampaignsArgs>,
+      args: z.infer<typeof listCampaignsArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -843,7 +823,7 @@ export const campaignsMethods: MethodMap = {
     description: "GET /api/campaigns/:id. Writes a `campaign` resource.",
     arguments: getCampaignArgs,
     execute: async (
-      args: z.infer<typeof getCampaignArgs>,
+      args: z.infer<typeof getCampaignArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -872,7 +852,9 @@ export const campaignsMethods: MethodMap = {
       "in-flight campaigns. Writes the `campaignStats` resource.",
     arguments: getRunningCampaignStatsArgs,
     execute: async (
-      args: z.infer<typeof getRunningCampaignStatsArgs>,
+      args: z.infer<typeof getRunningCampaignStatsArgs> & {
+        _fetch?: FetchLike;
+      },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -907,7 +889,7 @@ export const campaignsMethods: MethodMap = {
       "HTTP call.",
     arguments: createCampaignArgs,
     execute: async (
-      args: z.infer<typeof createCampaignArgs>,
+      args: z.infer<typeof createCampaignArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -967,7 +949,7 @@ export const campaignsMethods: MethodMap = {
       "mutating HTTP call.",
     arguments: updateCampaignArgs,
     execute: async (
-      args: z.infer<typeof updateCampaignArgs>,
+      args: z.infer<typeof updateCampaignArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -1048,7 +1030,7 @@ export const campaignsMethods: MethodMap = {
       "'scheduled', requires an existing or supplied FUTURE send_at.",
     arguments: setCampaignStatusArgs,
     execute: (
-      args: z.infer<typeof setCampaignStatusArgs>,
+      args: z.infer<typeof setCampaignStatusArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> =>
       runSetCampaignStatus(context, {
@@ -1067,7 +1049,7 @@ export const campaignsMethods: MethodMap = {
       "confirmSend=true, or NO status-transition call is made.",
     arguments: sendCampaignArgs,
     execute: (
-      args: z.infer<typeof sendCampaignArgs>,
+      args: z.infer<typeof sendCampaignArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> =>
       runSetCampaignStatus(context, {
@@ -1087,7 +1069,7 @@ export const campaignsMethods: MethodMap = {
       "made (and send_at is not even PUT to the campaign).",
     arguments: scheduleCampaignArgs,
     execute: (
-      args: z.infer<typeof scheduleCampaignArgs>,
+      args: z.infer<typeof scheduleCampaignArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> =>
       runSetCampaignStatus(context, {
@@ -1106,7 +1088,7 @@ export const campaignsMethods: MethodMap = {
       "transmit email, so confirmSend is not required.",
     arguments: pauseCampaignArgs,
     execute: (
-      args: z.infer<typeof pauseCampaignArgs>,
+      args: z.infer<typeof pauseCampaignArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> =>
       runSetCampaignStatus(context, {
@@ -1124,7 +1106,7 @@ export const campaignsMethods: MethodMap = {
       "does NOT transmit email, so confirmSend is not required.",
     arguments: cancelCampaignArgs,
     execute: (
-      args: z.infer<typeof cancelCampaignArgs>,
+      args: z.infer<typeof cancelCampaignArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> =>
       runSetCampaignStatus(context, {
@@ -1143,7 +1125,7 @@ export const campaignsMethods: MethodMap = {
       "confirmSend=true, or NO test POST is made.",
     arguments: testCampaignArgs,
     execute: async (
-      args: z.infer<typeof testCampaignArgs>,
+      args: z.infer<typeof testCampaignArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -1206,7 +1188,7 @@ export const campaignsMethods: MethodMap = {
       "`campaignPreview` resource.",
     arguments: previewCampaignArgs,
     execute: async (
-      args: z.infer<typeof previewCampaignArgs>,
+      args: z.infer<typeof previewCampaignArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -1239,7 +1221,7 @@ export const campaignsMethods: MethodMap = {
       "GET /api/templates — all templates. Writes the `templates` resource.",
     arguments: listTemplatesArgs,
     execute: async (
-      args: z.infer<typeof listTemplatesArgs>,
+      args: z.infer<typeof listTemplatesArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -1261,7 +1243,7 @@ export const campaignsMethods: MethodMap = {
       "GET /api/templates/:id. Writes a `template` resource (includes body).",
     arguments: getTemplateArgs,
     execute: async (
-      args: z.infer<typeof getTemplateArgs>,
+      args: z.infer<typeof getTemplateArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -1295,7 +1277,7 @@ export const campaignsMethods: MethodMap = {
       "with NO mutating HTTP call.",
     arguments: upsertTemplateArgs,
     execute: async (
-      args: z.infer<typeof upsertTemplateArgs>,
+      args: z.infer<typeof upsertTemplateArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -1379,7 +1361,7 @@ export const campaignsMethods: MethodMap = {
       "dry run writes a preview with NO mutating HTTP call.",
     arguments: deleteTemplateArgs,
     execute: async (
-      args: z.infer<typeof deleteTemplateArgs>,
+      args: z.infer<typeof deleteTemplateArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -1440,7 +1422,7 @@ export const campaignsMethods: MethodMap = {
       "with NO mutating HTTP call.",
     arguments: setDefaultTemplateArgs,
     execute: async (
-      args: z.infer<typeof setDefaultTemplateArgs>,
+      args: z.infer<typeof setDefaultTemplateArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;

@@ -29,7 +29,7 @@ const HealthSchema = z.object({
   retrievedAt: z.string(),
   profileUserId: z.number().nullable(),
   profileUsername: z.string().nullable(),
-}).passthrough();
+});
 
 const ListSummarySchema = z.object({
   id: z.number(),
@@ -40,7 +40,7 @@ const ListSummarySchema = z.object({
   status: z.string(),
   tags: z.array(z.string()),
   subscriberCount: z.number().nullable(),
-}).passthrough();
+});
 
 const SnapshotSchema = z.object({
   retrievedAt: z.string(),
@@ -58,7 +58,7 @@ const SnapshotSchema = z.object({
   subscriberCount: z.number().nullable(),
   campaignCount: z.number().nullable(),
   profileUsername: z.string().nullable(),
-}).passthrough();
+});
 
 export const coreResources: ResourceMap = {
   health: {
@@ -113,9 +113,7 @@ export const coreMethods: MethodMap = {
     description:
       "GET /api/profile — the cheapest token-valid probe (not permission-" +
       "gated). 200 => the token is valid; 403 => invalid/garbage token.",
-    arguments: z.object({
-      _fetch: z.any().optional(),
-    }),
+    arguments: z.object({}),
     execute: async (
       args: { _fetch?: FetchLike },
       context: ExecuteContext,
@@ -142,9 +140,7 @@ export const coreMethods: MethodMap = {
       "settings, subscriber/campaign counts). Each section is fault-tolerant: " +
       "a scoped token lacking a permission records the error for that section " +
       "and continues.",
-    arguments: z.object({
-      _fetch: z.any().optional(),
-    }),
+    arguments: z.object({}),
     execute: async (
       args: { _fetch?: FetchLike },
       context: ExecuteContext,

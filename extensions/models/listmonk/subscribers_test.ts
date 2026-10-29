@@ -681,22 +681,26 @@ Deno.test("deleteSubscriber: live path verifies then DELETEs", async () => {
   assertEquals(data.action, "deleted");
 });
 
-Deno.test("deleteSubscriber: refuses when the subscriber is not found", async () => {
-  const { f } = scripted([{ ok: true, status: 200, body: { data: null } }]);
-  const { writeResource } = fakeWriteResource();
-  await assertRejects(
-    () =>
-      subscribersMethods.deleteSubscriber.execute(
-        { id: 404, _fetch: f },
-        {
-          globalArgs: cfg({ dryRun: true }),
-          logger: fakeLogger(),
-          writeResource,
-        },
-      ),
-    Error,
-    "not found",
+Deno.test("deleteSubscriber: already-gone is a graceful no-op (not-found), no DELETE", async () => {
+  const { f, calls } = scripted([
+    { ok: true, status: 200, body: { data: null } },
+  ]);
+  const { writeResource, written } = fakeWriteResource();
+  await subscribersMethods.deleteSubscriber.execute(
+    { id: 404, _fetch: f },
+    {
+      globalArgs: cfg({ dryRun: false }),
+      logger: fakeLogger(),
+      writeResource,
+    },
   );
+  // Idempotent no-op: not-found written, email null, no throw, no DELETE.
+  // deno-lint-ignore no-explicit-any
+  const data = written[0].data as any;
+  assertEquals(data.action, "not-found");
+  assertEquals(data.email, null);
+  assertEquals(calls.length, 1);
+  assertEquals(calls[0].method, "GET");
 });
 
 Deno.test("deleteSubscriber: rejects a non-numeric id before any HTTP call", async () => {

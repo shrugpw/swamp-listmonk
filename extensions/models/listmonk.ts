@@ -58,7 +58,7 @@ const methods: MethodMap = {
  */
 export const model = {
   type: "@shrug/listmonk",
-  version: "2026.10.28.1", // CalVer; bump via `swamp extension version` at publish.
+  version: "2026.10.29.1", // CalVer; bump via `swamp extension version` at publish.
   description:
     "listmonk v6.2.0 REST API behavior: read-side health/sync, a bootstrap " +
     "provisionApiUser that mints a scoped least-privilege token into the " +

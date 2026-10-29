@@ -499,21 +499,23 @@ Deno.test("deleteList — dryRun false, list exists: GET verify then DELETE", as
   assertEquals(written[0].data.existed, true);
 });
 
-Deno.test("deleteList — dryRun false, list absent: refuses, never attempts DELETE", async () => {
+Deno.test("deleteList — dryRun false, list absent: graceful no-op, never attempts DELETE", async () => {
   const { fetch, calls } = sequentialFetch([
     { status: 404, body: { message: "list not found" } }, // existence GET only
   ]);
-  const { context } = makeContext({ dryRun: false });
-  await assertRejects(
-    () =>
-      listsMethods.deleteList.execute({ listId: 999, _fetch: fetch }, context),
-    Error,
-    "refusing to DELETE",
+  const { context, written } = makeContext({ dryRun: false });
+  await listsMethods.deleteList.execute(
+    { listId: 999, _fetch: fetch },
+    context,
   );
+  // Already-gone delete is an idempotent no-op: not-found written, no throw.
+  assertEquals(written[0].data.action, "not-found");
+  assertEquals(written[0].data.existed, false);
   // Only the existence-check GET fired; a second (DELETE) call would have
   // thrown the "no more scripted responses" error from sequentialFetch
   // instead, so this also proves DELETE was never attempted.
   assertEquals(calls.length, 1);
+  assertEquals(calls[0].method, "GET");
 });
 
 Deno.test("deleteList — invalid id rejects via assertId before any fetch", async () => {
@@ -550,14 +552,25 @@ Deno.test("computeListDrift — all declared fields match: in-sync, no changes",
 
 Deno.test("computeListDrift — a drifting scalar is reported with from/to", () => {
   const row = listRow({ id: 9, name: "Existing" });
-  const d = computeListDrift(row, { name: "Existing", status: "archived", tags: ["demo"] });
+  const d = computeListDrift(row, {
+    name: "Existing",
+    status: "archived",
+    tags: ["demo"],
+  });
   assertEquals(d.inSync, false);
-  assertEquals(d.changes, [{ field: "status", from: "active", to: "archived" }]);
+  assertEquals(d.changes, [{
+    field: "status",
+    from: "active",
+    to: "archived",
+  }]);
 });
 
 Deno.test("computeListDrift — tags compared as a SET (order-insensitive)", () => {
   const row = listRow({ tags: ["a", "b"] });
-  assertEquals(computeListDrift(row, { name: "x", tags: ["b", "a"] }).inSync, true);
+  assertEquals(
+    computeListDrift(row, { name: "x", tags: ["b", "a"] }).inSync,
+    true,
+  );
   const drift = computeListDrift(row, { name: "x", tags: ["a"] });
   assertEquals(drift.inSync, false);
   assertEquals(drift.changes[0].field, "tags");
@@ -566,15 +579,27 @@ Deno.test("computeListDrift — tags compared as a SET (order-insensitive)", () 
 Deno.test("computeListDrift — undeclared scalar is not drift (declared-subset)", () => {
   // status differs live (archived) but is NOT declared -> not reported.
   const row = listRow({ status: "archived", tags: ["demo"] });
-  const d = computeListDrift(row, { name: "x", type: "public", tags: ["demo"] });
+  const d = computeListDrift(row, {
+    name: "x",
+    type: "public",
+    tags: ["demo"],
+  });
   assertEquals(d.inSync, true);
 });
 
 Deno.test("computeListDrift — description diffs when the row carries it", () => {
   const row = listRow({ description: "Old blurb", tags: ["demo"] });
-  const same = computeListDrift(row, { name: "x", description: "Old blurb", tags: ["demo"] });
+  const same = computeListDrift(row, {
+    name: "x",
+    description: "Old blurb",
+    tags: ["demo"],
+  });
   assertEquals(same.inSync, true);
-  const diff = computeListDrift(row, { name: "x", description: "New blurb", tags: ["demo"] });
+  const diff = computeListDrift(row, {
+    name: "x",
+    description: "New blurb",
+    tags: ["demo"],
+  });
   assertEquals(diff.inSync, false);
   assertEquals(diff.changes[0].field, "description");
 });
@@ -585,11 +610,22 @@ Deno.test("computeListDrift — description diffs when the row carries it", () =
 
 Deno.test("upsertList — dryRun true, existing list already converged: in-sync, empty changes, no PUT", async () => {
   const { fetch, calls } = sequentialFetch([
-    { body: { data: { results: [listRow({ id: 9, name: "Existing" })], total: 1 } } },
+    {
+      body: {
+        data: { results: [listRow({ id: 9, name: "Existing" })], total: 1 },
+      },
+    },
   ]);
   const { context, written } = makeContext({ dryRun: true });
   await listsMethods.upsertList.execute(
-    { name: "Existing", type: "public", optin: "single", status: "active", tags: ["demo"], _fetch: fetch },
+    {
+      name: "Existing",
+      type: "public",
+      optin: "single",
+      status: "active",
+      tags: ["demo"],
+      _fetch: fetch,
+    },
     context,
   );
   assertEquals(written[0].data.action, "in-sync");
@@ -600,7 +636,11 @@ Deno.test("upsertList — dryRun true, existing list already converged: in-sync,
 
 Deno.test("upsertList — dryRun true, existing with drift: would-update carries per-field changes", async () => {
   const { fetch } = sequentialFetch([
-    { body: { data: { results: [listRow({ id: 9, name: "Existing" })], total: 1 } } },
+    {
+      body: {
+        data: { results: [listRow({ id: 9, name: "Existing" })], total: 1 },
+      },
+    },
   ]);
   const { context, written } = makeContext({ dryRun: true });
   await listsMethods.upsertList.execute(
@@ -608,18 +648,33 @@ Deno.test("upsertList — dryRun true, existing with drift: would-update carries
     context,
   );
   assertEquals(written[0].data.action, "would-update");
-  assertEquals(written[0].data.changes, [{ field: "status", from: "active", to: "archived" }]);
+  assertEquals(written[0].data.changes, [{
+    field: "status",
+    from: "active",
+    to: "archived",
+  }]);
 });
 
 Deno.test("upsertList — dryRun false, existing already converged: SKIPS the PUT (no-op), action in-sync", async () => {
   // Only ONE fetch is queued: if the method attempted a PUT, sequentialFetch
   // would run dry and throw — so a passing test proves no second call.
   const { fetch, calls } = sequentialFetch([
-    { body: { data: { results: [listRow({ id: 9, name: "Existing" })], total: 1 } } },
+    {
+      body: {
+        data: { results: [listRow({ id: 9, name: "Existing" })], total: 1 },
+      },
+    },
   ]);
   const { context, written } = makeContext({ dryRun: false });
   await listsMethods.upsertList.execute(
-    { name: "Existing", type: "public", optin: "single", status: "active", tags: ["demo"], _fetch: fetch },
+    {
+      name: "Existing",
+      type: "public",
+      optin: "single",
+      status: "active",
+      tags: ["demo"],
+      _fetch: fetch,
+    },
     context,
   );
   assertEquals(calls.length, 1); // lookup only — no PUT
@@ -629,12 +684,28 @@ Deno.test("upsertList — dryRun false, existing already converged: SKIPS the PU
 
 Deno.test("upsertList — declared description triggers a full GET to diff it, then in-sync", async () => {
   const { fetch, calls } = sequentialFetch([
-    { body: { data: { results: [listRow({ id: 9, name: "Existing" })], total: 1 } } }, // minimal lookup
-    { body: { data: listRow({ id: 9, name: "Existing", description: "Hello" }) } }, // full GET
+    {
+      body: {
+        data: { results: [listRow({ id: 9, name: "Existing" })], total: 1 },
+      },
+    }, // minimal lookup
+    {
+      body: {
+        data: listRow({ id: 9, name: "Existing", description: "Hello" }),
+      },
+    }, // full GET
   ]);
   const { context, written } = makeContext({ dryRun: true });
   await listsMethods.upsertList.execute(
-    { name: "Existing", type: "public", optin: "single", status: "active", description: "Hello", tags: ["demo"], _fetch: fetch },
+    {
+      name: "Existing",
+      type: "public",
+      optin: "single",
+      status: "active",
+      description: "Hello",
+      tags: ["demo"],
+      _fetch: fetch,
+    },
     context,
   );
   assertEquals(calls.length, 2);

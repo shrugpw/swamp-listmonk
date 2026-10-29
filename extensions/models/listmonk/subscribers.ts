@@ -45,7 +45,7 @@ const SubscriberSchema = z.object({
   status: z.string(),
   attribs: z.record(z.string(), z.unknown()),
   lists: z.array(z.unknown()),
-}).passthrough();
+});
 
 const SubscribersListSchema = z.object({
   retrievedAt: z.string(),
@@ -53,13 +53,13 @@ const SubscribersListSchema = z.object({
   listId: z.number().nullable(),
   count: z.number(),
   rows: z.array(SubscriberSchema),
-}).passthrough();
+});
 
 const SubscriberSingleSchema = z.object({
   retrievedAt: z.string(),
   found: z.boolean(),
   subscriber: SubscriberSchema.nullable(),
-}).passthrough();
+});
 
 const ImportRunSchema = z.object({
   retrievedAt: z.string(),
@@ -71,7 +71,7 @@ const ImportRunSchema = z.object({
   errors: z.array(z.string()),
   logsScanned: z.boolean(),
   sampleCsv: z.string().optional(),
-}).passthrough();
+});
 
 const SubscriberUpsertSchema = z.object({
   retrievedAt: z.string(),
@@ -80,7 +80,7 @@ const SubscriberUpsertSchema = z.object({
   action: z.string(),
   method: z.string(),
   id: z.number().nullable(),
-}).passthrough();
+});
 
 const SubscriberDeleteSchema = z.object({
   retrievedAt: z.string(),
@@ -88,7 +88,7 @@ const SubscriberDeleteSchema = z.object({
   id: z.number(),
   email: z.string().nullable(),
   action: z.string(),
-}).passthrough();
+});
 
 const SubscriberListsSchema = z.object({
   retrievedAt: z.string(),
@@ -98,7 +98,7 @@ const SubscriberListsSchema = z.object({
   action: z.string(),
   status: z.string().nullable(),
   applied: z.boolean(),
-}).passthrough();
+});
 
 export const subscribersResources: ResourceMap = {
   subscribers: {
@@ -326,13 +326,11 @@ const queryArgs = z.object({
       "building it.",
   ),
   listId: z.number().int().positive().optional(),
-  _fetch: z.any().optional(),
 });
 
 const getArgs = z.object({
   id: z.union([z.number().int().positive(), z.string()]).optional(),
   email: z.string().min(1).optional(),
-  _fetch: z.any().optional(),
 }).refine((a) => a.id !== undefined || a.email !== undefined, {
   message: "getSubscriber requires either id or email",
 });
@@ -362,17 +360,11 @@ const importArgs = z.object({
   delim: z.string().default(","),
   pollIntervalMs: z.number().int().positive().default(1000),
   pollTimeoutMs: z.number().int().positive().default(5 * 60 * 1000),
-  _fetch: z.any().optional(),
-  _sleep: z.any().optional(),
 });
 
-const importStatusArgs = z.object({
-  _fetch: z.any().optional(),
-});
+const importStatusArgs = z.object({});
 
-const stopImportArgs = z.object({
-  _fetch: z.any().optional(),
-});
+const stopImportArgs = z.object({});
 
 const upsertArgs = z.object({
   email: z.string().min(1),
@@ -389,12 +381,10 @@ const upsertArgs = z.object({
       "either, but is a blunter replace — prefer PATCH unless you need PUT " +
       "semantics).",
   ),
-  _fetch: z.any().optional(),
 });
 
 const deleteArgs = z.object({
   id: z.union([z.number().int().positive(), z.string()]),
-  _fetch: z.any().optional(),
 });
 
 const manageListsArgs = z.object({
@@ -404,7 +394,6 @@ const manageListsArgs = z.object({
   action: z.enum(["add", "remove", "unsubscribe"]),
   status: z.enum(["unconfirmed", "confirmed", "unsubscribed"]).optional()
     .describe("subscription_status to set — only meaningful for action=add."),
-  _fetch: z.any().optional(),
 });
 
 export const subscribersMethods: MethodMap = {
@@ -415,7 +404,7 @@ export const subscribersMethods: MethodMap = {
       "buildEmailQuery) and/or `listId` filter. Read-only.",
     arguments: queryArgs,
     execute: async (
-      args: z.infer<typeof queryArgs>,
+      args: z.infer<typeof queryArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -449,7 +438,7 @@ export const subscribersMethods: MethodMap = {
       "(GET /api/subscribers?query=<escaped SQL>). Read-only.",
     arguments: getArgs,
     execute: async (
-      args: z.infer<typeof getArgs>,
+      args: z.infer<typeof getArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -496,7 +485,9 @@ export const subscribersMethods: MethodMap = {
       "HTTP call.",
     arguments: importArgs,
     execute: async (
-      args: z.infer<typeof importArgs>,
+      args:
+        & z.infer<typeof importArgs>
+        & { _fetch?: FetchLike; _sleep?: (ms: number) => Promise<void> },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -623,7 +614,7 @@ export const subscribersMethods: MethodMap = {
       "GET /api/import/subscribers — read-only import-session status.",
     arguments: importStatusArgs,
     execute: async (
-      args: z.infer<typeof importStatusArgs>,
+      args: z.infer<typeof importStatusArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -655,7 +646,7 @@ export const subscribersMethods: MethodMap = {
       "global-singleton import session back to `none`.",
     arguments: stopImportArgs,
     execute: async (
-      args: z.infer<typeof stopImportArgs>,
+      args: z.infer<typeof stopImportArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -697,7 +688,7 @@ export const subscribersMethods: MethodMap = {
       "performs no mutating call.",
     arguments: upsertArgs,
     execute: async (
-      args: z.infer<typeof upsertArgs>,
+      args: z.infer<typeof upsertArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -810,7 +801,7 @@ export const subscribersMethods: MethodMap = {
       "then DELETE /api/subscribers/:id. dryRun (default true) verifies only.",
     arguments: deleteArgs,
     execute: async (
-      args: z.infer<typeof deleteArgs>,
+      args: z.infer<typeof deleteArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -825,9 +816,25 @@ export const subscribersMethods: MethodMap = {
       );
       const row = (existing.data ?? null) as Record<string, unknown> | null;
       if (!row) {
-        throw new Error(
-          `deleteSubscriber: subscriber ${idStr} not found; refusing to proceed`,
+        // Already gone: a delete of a nonexistent subscriber is a no-op, not an
+        // error, so reruns are idempotent (matches deleteTemplate).
+        context.logger.warning(
+          "deleteSubscriber: subscriber {id} not found — nothing to delete " +
+            "(no-op)",
+          { id: idStr },
         );
+        const handle = await context.writeResource(
+          "subscriberDelete",
+          "subscriberDelete",
+          {
+            retrievedAt: new Date().toISOString(),
+            dryRun: cfg.dryRun,
+            id: Number(idStr),
+            email: null,
+            action: "not-found",
+          },
+        );
+        return { dataHandles: [handle] };
       }
       const email = typeof row.email === "string" ? row.email : null;
 
@@ -873,7 +880,7 @@ export const subscribersMethods: MethodMap = {
       "replace. `status` (subscription_status) only applies to action=add.",
     arguments: manageListsArgs,
     execute: async (
-      args: z.infer<typeof manageListsArgs>,
+      args: z.infer<typeof manageListsArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;

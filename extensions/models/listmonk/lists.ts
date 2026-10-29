@@ -52,13 +52,13 @@ const ListSummarySchema = z.object({
   status: z.string(),
   tags: z.array(z.string()),
   subscriberCount: z.number().nullable(),
-}).passthrough();
+});
 
 const ListsSchema = z.object({
   retrievedAt: z.string(),
   count: z.number(),
   lists: z.array(ListSummarySchema),
-}).passthrough();
+});
 
 const ListSchema = z.object({
   retrievedAt: z.string(),
@@ -66,7 +66,7 @@ const ListSchema = z.object({
   list: ListSummarySchema.nullable(),
   // Only set by findListByName when found===false or ambiguous info is useful.
   matchCount: z.number().optional(),
-}).passthrough();
+});
 
 const ListUpsertSchema = z.object({
   retrievedAt: z.string(),
@@ -83,7 +83,7 @@ const ListUpsertSchema = z.object({
     from: z.unknown(),
     to: z.unknown(),
   })).optional(),
-}).passthrough();
+});
 
 const ListDeleteSchema = z.object({
   retrievedAt: z.string(),
@@ -91,7 +91,7 @@ const ListDeleteSchema = z.object({
   listId: z.number(),
   action: z.string(), // would-delete | deleted
   existed: z.boolean(),
-}).passthrough();
+});
 
 export const listsResources: ResourceMap = {
   lists: {
@@ -300,9 +300,7 @@ export const listsMethods: MethodMap = {
     description:
       "GET /api/lists (minimal=true, paginated via lmFetchAll) — every list " +
       "as a summary. Write the `lists` resource.",
-    arguments: z.object({
-      _fetch: z.any().optional(),
-    }),
+    arguments: z.object({}),
     execute: async (
       args: { _fetch?: FetchLike },
       context: ExecuteContext,
@@ -334,7 +332,6 @@ export const listsMethods: MethodMap = {
       "Writes a `list` resource — found:false/list:null when no match.",
     arguments: z.object({
       name: z.string().min(1).describe("Exact list name to match."),
-      _fetch: z.any().optional(),
     }),
     execute: async (
       args: { name: string; _fetch?: FetchLike },
@@ -367,7 +364,6 @@ export const listsMethods: MethodMap = {
       listId: z.union([z.number(), z.string()]).describe(
         "The list id (positive integer).",
       ),
-      _fetch: z.any().optional(),
     }),
     execute: async (
       args: { listId: number | string; _fetch?: FetchLike },
@@ -420,7 +416,6 @@ export const listsMethods: MethodMap = {
         "ALWAYS sent in full on update — listmonk overwrites tags " +
           "unconditionally, there is no partial-merge.",
       ),
-      _fetch: z.any().optional(),
     }),
     execute: async (
       args: {
@@ -569,7 +564,6 @@ export const listsMethods: MethodMap = {
       listId: z.union([z.number(), z.string()]).describe(
         "The list id (positive integer) to delete.",
       ),
-      _fetch: z.any().optional(),
     }),
     execute: async (
       args: { listId: number | string; _fetch?: FetchLike },
@@ -606,9 +600,20 @@ export const listsMethods: MethodMap = {
       }
 
       if (!existed) {
-        throw new Error(
-          `list ${id} does not exist — refusing to DELETE a nonexistent list`,
+        // Already gone: a delete of a nonexistent list is a no-op, not an
+        // error, so reruns are idempotent (matches deleteTemplate).
+        context.logger.warning(
+          "deleteList: list {id} not found — nothing to delete (no-op)",
+          { id },
         );
+        const h = await context.writeResource("listDelete", "listDelete", {
+          retrievedAt: new Date().toISOString(),
+          dryRun: false,
+          listId: Number(id),
+          action: "not-found",
+          existed: false,
+        });
+        return { dataHandles: [h] };
       }
 
       context.logger.info("Deleting list {id}", { id });

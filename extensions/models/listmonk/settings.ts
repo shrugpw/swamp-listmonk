@@ -37,7 +37,7 @@ const SettingsSchema = z.object({
   // masks every stored secret (smtp[].password, bounce.mailboxes[].password,
   // ...) with bullet characters before returning it.
   settings: z.record(z.string(), z.unknown()),
-}).passthrough();
+});
 
 const SettingsApplySchema = z.object({
   retrievedAt: z.string(),
@@ -56,7 +56,7 @@ const SettingsApplySchema = z.object({
   // secret-shaped field redacted — NEVER the overlay's cleartext password.
   // Null on a live (non-dry-run) write, since the object has already shipped.
   preview: z.record(z.string(), z.unknown()).nullable(),
-}).passthrough();
+});
 
 const SmtpTestSchema = z.object({
   retrievedAt: z.string(),
@@ -66,7 +66,7 @@ const SmtpTestSchema = z.object({
   port: z.number().nullable(),
   success: z.boolean().nullable(),
   message: z.string().nullable(),
-}).passthrough();
+});
 
 const DriftRowSchema = z.object({
   // The drifted key: a listmonk dotted settings key (e.g. "app.root_url") or a
@@ -83,7 +83,7 @@ const DriftRowSchema = z.object({
   // WILL be written through if this block is PUT for any (non-secret) reason.
   // Rotate an SMTP secret with setSmtpServers, which always writes it through.
   secretWriteThrough: z.boolean().optional(),
-}).passthrough();
+});
 
 const SettingsReconcileSchema = z.object({
   retrievedAt: z.string(),
@@ -100,7 +100,7 @@ const SettingsReconcileSchema = z.object({
   // Secret-redacted full merged object that WOULD be PUT (dry run) — null once a
   // live write has shipped.
   preview: z.record(z.string(), z.unknown()).nullable(),
-}).passthrough();
+});
 
 export const settingsResources: ResourceMap = {
   settings: {
@@ -526,7 +526,6 @@ const applySettingsArgs = z.object({
       "stored secret). Live smtp blocks the overlay doesn't mention are left " +
       "untouched (their stored password is preserved, never re-sent).",
   ),
-  _fetch: z.any().optional(),
 });
 
 const setSmtpServersArgs = z.object({
@@ -537,7 +536,6 @@ const setSmtpServersArgs = z.object({
       "GET-merge-PUT under the hood (listmonk's PUT replaces the whole " +
       "object, and requires >=1 enabled block).",
   ),
-  _fetch: z.any().optional(),
 });
 
 const reconcileSettingsArgs = z.object({
@@ -551,7 +549,6 @@ const reconcileSettingsArgs = z.object({
       "only when something would change. SMTP passwords are masked in a GET so " +
       "are never diffed — rotate a secret with setSmtpServers.",
   ),
-  _fetch: z.any().optional(),
 });
 
 const smtpTestArgs = z.object({
@@ -561,7 +558,6 @@ const smtpTestArgs = z.object({
       "verbatim to POST /api/settings/smtp/test, which sends a real test " +
       "email through that server.",
   ),
-  _fetch: z.any().optional(),
 });
 
 export const settingsMethods: MethodMap = {
@@ -570,7 +566,7 @@ export const settingsMethods: MethodMap = {
       "GET /api/settings — the live settings object. Already secret-free " +
       "(listmonk masks every stored secret before returning it). Read-only, " +
       "not gated by dryRun.",
-    arguments: z.object({ _fetch: z.any().optional() }),
+    arguments: z.object({}),
     execute: async (
       args: { _fetch?: FetchLike },
       context: ExecuteContext,
@@ -597,7 +593,7 @@ export const settingsMethods: MethodMap = {
       "(password:'' + original uuid) so the live secret is never clobbered.",
     arguments: applySettingsArgs,
     execute: async (
-      args: z.infer<typeof applySettingsArgs>,
+      args: z.infer<typeof applySettingsArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -629,7 +625,7 @@ export const settingsMethods: MethodMap = {
       "password-preservation/redaction discipline as applySettings.",
     arguments: setSmtpServersArgs,
     execute: async (
-      args: z.infer<typeof setSmtpServersArgs>,
+      args: z.infer<typeof setSmtpServersArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -663,7 +659,7 @@ export const settingsMethods: MethodMap = {
       "message) so the method completes either way.",
     arguments: smtpTestArgs,
     execute: async (
-      args: z.infer<typeof smtpTestArgs>,
+      args: z.infer<typeof smtpTestArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -722,7 +718,7 @@ export const settingsMethods: MethodMap = {
       "POST /api/admin/reload — force the running app to reload its config " +
       "(this also happens automatically ~500ms after a settings PUT, unless " +
       "campaigns are running). Gated by dryRun (default true).",
-    arguments: z.object({ _fetch: z.any().optional() }),
+    arguments: z.object({}),
     execute: async (
       args: { _fetch?: FetchLike },
       context: ExecuteContext,
@@ -783,7 +779,7 @@ export const settingsMethods: MethodMap = {
       "rotate an SMTP secret with setSmtpServers.",
     arguments: reconcileSettingsArgs,
     execute: async (
-      args: z.infer<typeof reconcileSettingsArgs>,
+      args: z.infer<typeof reconcileSettingsArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;

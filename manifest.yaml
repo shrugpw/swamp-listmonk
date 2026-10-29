@@ -1,6 +1,6 @@
 manifestVersion: 1
 name: "@shrug/listmonk"
-version: "2026.10.28.1"
+version: "2026.10.29.1"
 description: |
   listmonk (v6.2.0) REST API behavior — a typed swamp primitive for driving a
   listmonk deployment, not exec/curl wrappers.

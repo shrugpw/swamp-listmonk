@@ -78,7 +78,7 @@ const ApiCredentialSchema = z.object({
   roleId: z.number(),
   roleName: z.string(),
   mintedAt: z.string(),
-}).passthrough();
+});
 
 const ProvisionRunSchema = z.object({
   retrievedAt: z.string(),
@@ -90,7 +90,7 @@ const ProvisionRunSchema = z.object({
   roleAction: z.string(), // created|reused|reconciled|would-create|would-reuse|would-reconcile
   userAction: z.string(), // created | exists | would-create | would-reuse
   tokenMinted: z.boolean(),
-}).passthrough();
+});
 
 export const authResources: ResourceMap = {
   apiCredential: {
@@ -212,7 +212,6 @@ const provisionArgs = z.object({
     "Email for the api user (listmonk may require one). Default " +
       "<username>@api.invalid.",
   ),
-  _fetch: z.any().optional(),
 });
 
 export const authMethods: MethodMap = {
@@ -227,7 +226,7 @@ export const authMethods: MethodMap = {
       "reports the plan without creating anything.",
     arguments: provisionArgs,
     execute: async (
-      args: z.infer<typeof provisionArgs>,
+      args: z.infer<typeof provisionArgs> & { _fetch?: FetchLike },
       context: ExecuteContext,
     ): Promise<ExecuteResult> => {
       const cfg = context.globalArgs;
@@ -414,7 +413,6 @@ export const authMethods: MethodMap = {
       bootstrapUser: z.string().min(1),
       bootstrapToken: z.string().min(1).meta({ sensitive: true }),
       username: z.string().regex(USERNAME_RE).default("swamp-ops"),
-      _fetch: z.any().optional(),
     }),
     execute: async (
       args: {
